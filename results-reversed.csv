@@ -1,0 +1,19 @@
+scenario,optimization_on,optimization_off
+version,Gradle 9.7.1,Gradle 9.7.1
+tasks,benchmarkGraph,benchmarkGraph
+value,total execution time,total execution time
+warm-up build #1,15387.63,16874.90
+warm-up build #2,11158.04,21063.48
+warm-up build #3,8087.22,13174.25
+warm-up build #4,7451.92,18398.78
+warm-up build #5,7176.71,17748.28
+measured build #1,6900.92,17289.07
+measured build #2,6911.18,17194.72
+measured build #3,7232.94,17294.36
+measured build #4,7411.81,17171.38
+measured build #5,6961.72,17454.34
+measured build #6,6906.59,17400.65
+measured build #7,6713.75,14998.84
+measured build #8,6607.64,13720.98
+measured build #9,6579.06,15890.67
+measured build #10,6510.76,16232.55

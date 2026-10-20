@@ -38,14 +38,16 @@ This compares release lint with the guard off and on, using one app and one libr
 
 Open `results/local/profiler/benchmark.html`. Compare **Median** for `total execution time` between `optimization_off` and `optimization_on`. Times are in milliseconds; lower is faster. Warmups are excluded.
 
-Recorded with the defaults on macOS 26.7.1 arm64, JDK 22.0.2, October 20, 2026:
+Recorded on macOS 26.7.1 arm64, JDK 22.0.2, October 20, 2026, with the default graph and heap. These medians combine all 20 measured builds per mode from two runs in opposite orders. Each run used five warmups and ten measured builds per mode; warmups are excluded.
 
 | Scenario | Median |
 | --- | ---: |
-| Optimization off | 17.426 s |
-| Optimization on | 7.685 s |
+| Optimization off | 17.292 s |
+| Optimization on | 6.749 s |
 
-That is 55.9% less time, or 2.27× faster. The off builds varied from 8.66–26.47 s; on builds took 7.13–9.03 s. Repeat the comparison before drawing conclusions: the scenarios run in order, and machine load affects the timings. [Raw Profiler CSV](results.csv).
+That is 61.0% less time, or 2.56× faster. Raw Profiler CSVs: [off first](results.csv), [on first](results-reversed.csv).
+
+To repeat this comparison, run `WARMUPS=5 ITERATIONS=10 ./benchmark.sh`, then append `optimization_on optimization_off` for the reverse order. Save the first output before the second run. Machine load affects timings; repeat locally before drawing conclusions.
 
 The tasks have no actions, so this measures configuration and task-graph overhead rather than Android compilation.
 
