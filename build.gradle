@@ -1,0 +1,67 @@
+import java.security.MessageDigest
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:${project.property('agpVersion')}"
+        // Select a newer Kotlin version for AGP's built-in Kotlin integration.
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${project.property('kotlinVersion')}"
+    }
+}
+
+repro.LintGraphPatch.install(gradle)
+
+subprojects {
+    apply plugin: 'com.android.library'
+    android {
+        namespace = 'example.repro'
+        compileSdk = 36
+        defaultConfig { minSdk = 23 }
+        compileOptions {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
+        }
+        sourceSets.main {
+            manifest.srcFile(rootProject.file('src/main/AndroidManifest.xml'))
+            kotlin.srcDirs(rootProject.file('src/main/kotlin'))
+        }
+    }
+}
+
+def graphNodes = project.property('graphNodes').toInteger()
+if (graphNodes <= subprojects.size() || graphNodes > 1000000) {
+    throw new GradleException('graphNodes must exceed moduleCount and be at most 1000000')
+}
+
+// NODES - 1 leaves spread across modules, plus the root benchmarkGraph task.
+def leaves = []
+subprojects.sort { it.name }.eachWithIndex { module, moduleIndex ->
+    def count = (graphNodes - 1).intdiv(subprojects.size())
+    if (moduleIndex < (graphNodes - 1) % subprojects.size()) count++
+    (1..count).each { index ->
+        leaves.add(module.tasks.register(String.format('node%06d', index)))
+    }
+}
+tasks.register('benchmarkGraph') { dependsOn(leaves) }
+
+if (providers.gradleProperty('verifyPatch').getOrElse('false').toBoolean()) {
+    gradle.projectsEvaluated {
+        def guard = System.getProperty('repro.lintEmptyMapGuard')
+        if (!(guard in ['false', 'true'])) throw new GradleException('Set repro.lintEmptyMapGuard to true or false')
+        System.clearProperty('repro.callbackSkipped')
+        gradle.taskGraph.whenReady { graph ->
+            if (System.getProperty('repro.callbackSkipped') != guard) {
+                throw new GradleException('The AGP callback did not run with the expected guard')
+            }
+            def allTasks = graph.allTasks
+            if (allTasks.size() != graphNodes) throw new GradleException('Unexpected task count')
+            def digest = MessageDigest.getInstance('SHA-256').digest(
+                allTasks.collect { it.path }.sort().join('\n').getBytes('UTF-8')).encodeHex()
+            println "REPRO_GRAPH ${digest}"
+            println "REPRO_GUARD ${guard}"
+        }
+    }
+}

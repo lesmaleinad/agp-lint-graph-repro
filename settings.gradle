@@ -1,0 +1,20 @@
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'agp-lint-graph-repro'
+
+def moduleCount = providers.gradleProperty('moduleCount').get().toInteger()
+if (moduleCount < 1 || moduleCount > 10000) {
+    throw new GradleException('moduleCount must be between 1 and 10000')
+}
+(1..moduleCount).each { index ->
+    def name = String.format('module%02d', index)
+    include(":${name}")
+    project(":${name}").projectDir = file("modules/${name}")
+    // Gradle requires project directories; all module configuration lives in the root build.
+    project(":${name}").projectDir.mkdirs()
+}
