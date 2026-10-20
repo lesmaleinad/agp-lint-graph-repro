@@ -2,6 +2,12 @@
 
 AGP searches the task graph once per Android library, even when there are no lint-vital tasks to update. This repro measures the benefit of returning early when that task map is empty.
 
+The proposed change inside [AGP's callback](https://android.googlesource.com/platform/tools/base/+/mirror-goog-studio-main/build-system/gradle-core/src/main/java/com/android/build/gradle/internal/lint/LintTaskManager.kt#302) is:
+
+```kotlin
+if (variantLintTaskToLintVitalTask.isEmpty()) return@whenReady
+```
+
 ## Run
 
 Use a full JDK (21 recommended), Android SDK platform 36 and build-tools 36.0.0. Set `JAVA_HOME` and `ANDROID_HOME`, and have `curl` and `unzip` on your path.
@@ -19,6 +25,14 @@ MODULES=10 NODES=10000 HEAP=2g ./benchmark.sh
 ```
 
 You can also set `WARMUPS` and `ITERATIONS`. Keep the machine otherwise idle while measuring.
+
+To check that lint behavior is preserved:
+
+```sh
+./compare-dry-run.sh
+```
+
+This compares release lint with the guard off and on, using one app and one library. It prints the map sizes and compares the task lists and lint-vital enabled states. Logs go in `results/local/dry-run/`. [Verification notes](verification.md) record the other checks we ran.
 
 ## Read the results
 
@@ -41,10 +55,4 @@ Each run replaces `results/local/profiler/`; copy it to save a run. Review logs 
 
 [settings.gradle](settings.gradle) generates the modules; [build.gradle](build.gradle) gives them a shared Kotlin source file and builds the task graph. AGP and Kotlin versions are pinned in [gradle.properties](gradle.properties).
 
-[LintGraphPatch.kt](buildSrc/src/main/kotlin/repro/LintGraphPatch.kt) uses Byte Buddy to try the change without rebuilding AGP. The switch is `-Drepro.lintEmptyMapGuard=true` or `false`. Both modes use the same instrumentation; only the `true` mode skips the callback when its map is empty. The benchmark checks that the patch ran and both modes have identical task paths.
-
-The proposed change inside [AGP's callback](https://android.googlesource.com/platform/tools/base/+/mirror-goog-studio-main/build-system/gradle-core/src/main/java/com/android/build/gradle/internal/lint/LintTaskManager.kt#302) is:
-
-```kotlin
-if (variantLintTaskToLintVitalTask.isEmpty()) return@whenReady
-```
+[LintGraphPatch.kt](buildSrc/src/main/kotlin/repro/LintGraphPatch.kt) uses Byte Buddy to try the change without rebuilding AGP. The switch is `-Drepro.lintEmptyMapGuard=true` or `false`. Both modes use the same instrumentation; only the `true` mode skips the callback when its map is empty.

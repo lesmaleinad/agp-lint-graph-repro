@@ -1,5 +1,3 @@
-import java.security.MessageDigest
-
 buildscript {
     repositories {
         google()
@@ -14,8 +12,9 @@ buildscript {
 
 repro.LintGraphPatch.install(gradle)
 
+def withApp = providers.gradleProperty('withApp').getOrElse('false').toBoolean()
 subprojects {
-    apply plugin: 'com.android.library'
+    apply plugin: (withApp && name == 'module01' ? 'com.android.application' : 'com.android.library')
     android {
         namespace = 'example.repro'
         compileSdk = 36
@@ -47,21 +46,13 @@ subprojects.sort { it.name }.eachWithIndex { module, moduleIndex ->
 }
 tasks.register('benchmarkGraph') { dependsOn(leaves) }
 
-if (providers.gradleProperty('verifyPatch').getOrElse('false').toBoolean()) {
+// For the lint comparison, print the states that --dry-run does not show.
+if (withApp) {
     gradle.projectsEvaluated {
-        def guard = System.getProperty('repro.lintEmptyMapGuard')
-        if (!(guard in ['false', 'true'])) throw new GradleException('Set repro.lintEmptyMapGuard to true or false')
-        System.clearProperty('repro.callbackSkipped')
         gradle.taskGraph.whenReady { graph ->
-            if (System.getProperty('repro.callbackSkipped') != guard) {
-                throw new GradleException('The AGP callback did not run with the expected guard')
+            graph.allTasks.findAll { it.name.startsWith('lintVital') }.each { task ->
+                println "LINT_TASK ${task.path} enabled=${task.enabled}"
             }
-            def allTasks = graph.allTasks
-            if (allTasks.size() != graphNodes) throw new GradleException('Unexpected task count')
-            def digest = MessageDigest.getInstance('SHA-256').digest(
-                allTasks.collect { it.path }.sort().join('\n').getBytes('UTF-8')).encodeHex()
-            println "REPRO_GRAPH ${digest}"
-            println "REPRO_GUARD ${guard}"
         }
     }
 }

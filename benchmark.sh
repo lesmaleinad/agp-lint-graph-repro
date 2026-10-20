@@ -26,14 +26,4 @@ fi
     --scenario-file benchmark.scenarios --output-dir "$output" \
     --warmups "${WARMUPS:-3}" --iterations "${ITERATIONS:-5}" "$@"
 
-for guard in false true; do
-    grep -q "^REPRO_GUARD $guard$" "$output/profile.log" || {
-        echo "Missing AGP callback verification for guard=$guard" >&2
-        exit 1
-    }
-done
-if [[ $(sed -n 's/^REPRO_GRAPH //p' "$output/profile.log" | sort -u | wc -l) -ne 1 ]]; then
-    echo 'Task paths differ between builds' >&2
-    exit 1
-fi
 printf '\nCompare the Median column in %s/benchmark.html\n' "$output"

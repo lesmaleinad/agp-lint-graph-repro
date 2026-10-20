@@ -4,7 +4,7 @@ common {
     tasks = [benchmarkGraph]
     gradle-args = [
         "--quiet", "--offline", "--no-configuration-cache", "--no-build-cache", "--max-workers=1",
-        "-PverifyPatch=true", ${REPRO_MODULES_ARG}, ${REPRO_NODES_ARG}
+        ${REPRO_MODULES_ARG}, ${REPRO_NODES_ARG}
     ]
     jvm-args = [${REPRO_HEAP}, "-Dfile.encoding=UTF-8", "-XX:+EnableDynamicAgentLoading"]
     clear-configuration-cache-state-before = BUILD

@@ -33,8 +33,9 @@ object LintGraphPatch {
         @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue::class)
         fun skip(@Advice.FieldValue("\$variantLintTaskToLintVitalTask") tasks: Map<*, *>): Boolean {
             val skip = java.lang.Boolean.getBoolean("repro.lintEmptyMapGuard") && tasks.isEmpty()
-            // JVM properties are visible across AGP's isolated classloader.
-            System.setProperty("repro.callbackSkipped", skip.toString())
+            if (java.lang.Boolean.getBoolean("repro.showLintState")) {
+                System.out.println("LINT_MAP entries=${tasks.size} skipped=$skip")
+            }
             return skip
         }
     }
